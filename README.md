@@ -32,10 +32,57 @@
 
 ```bash
 git clone https://github.com/your-username/moodify.git
+```
 
 2. Open the project folder:
+
 ```bash
 cd moodify
+```
+Launch the index.html file in your browser.
 
+You can also use a live server extension in VSCode for a better experience.
+
+🔑 API Setup
+No authentication needed for ZenQuotes or iTunes API
+
+For Unsplash:
+
+Sign up at Unsplash Developers
+
+Create a new app and get your Access Key
+
+Add the key in your JavaScript file
+
+For Spotify:
+
+If you want to use Spotify playlists, you may embed public playlists directly or follow Spotify's Web Playback SDK documentation
+
+💡 Future Improvements
+Add user login and save mood history
+
+Use sentiment analysis to detect mood from user text
+
+Add dark mode
+
+Include GIFs using the Giphy API
+
+📸 Screenshots
+Coming soon! (You can add screenshots once your app is built)
+
+🤝 Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+📄 License
+This project is open source and available under the MIT License.
+
+🙌 Acknowledgements
+ZenQuotes
+
+Spotify Developers
+
+Unsplash
+
+iTunes API
 
 
