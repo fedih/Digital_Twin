@@ -38,7 +38,7 @@ git clone https://github.com/your-username/moodify.git
 2. Open the project folder:
 cd moodify
 
-3.Launch the index.html file in your browser.
+3. Launch the index.html file in your browser.
 
 You can also use a live server extension in VSCode for a better experience.
 
