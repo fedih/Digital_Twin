@@ -155,9 +155,3 @@ docker-compose down
 2. Create a feature branch (`git checkout -b feature/YourFeature`)
 3. Commit your changes (`git commit -m 'Add feature'`)
 4. Open a Pull Request
-
-Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
