@@ -1,84 +1,157 @@
-# Digital Twin Weather Project
+🌦 Digital Twin Weather Project
+A real-time weather monitoring system using FIWARE, QuantumLeap, and Grafana. Collect, store, and visualize city weather data with Docker-powered architecture.
 
-Ce projet met en place une architecture « Digital Twin » pour collecter, stocker et visualiser les données météorologiques d’une ville en temps réel, à l’aide de FIWARE (Orion Context Broker), MongoDB, QuantumLeap, CrateDB et Grafana, le tout orchestré via Docker Compose. Un script Python interroge l’API OpenWeatherMap toutes les 5 minutes et pousse les observations dans Orion. QuantumLeap relaie ensuite ces données vers CrateDB, et Grafana affiche des dashboards dynamiques.
+Architecture Diagram
 
----
-![image](https://github.com/user-attachments/assets/2464ea09-affe-4454-bf6c-aa3b4f04f4ba)
+📋 Table of Contents
+Project Overview
+
+Architecture
+
+Prerequisites
+
+Quick Start
+
+Services & Endpoints
+
+Data Workflow
+
+Customization Guide
+
+Troubleshooting
+
+License
+
+🌍 Project Overview
+Implements a digital twin pattern to:
+
+Collect weather data from OpenWeatherMap API (5-min intervals)
+
+Store in FIWARE Orion Context Broker
+
+Persist historical data in CrateDB via QuantumLeap
+
+Visualize through Grafana dashboards
+
+🏗 Architecture
+Diagram
+Code
 
 
-## 🗂 Structure du dépôt
-
-digital-twin-weather/
-├── Dockerfile.weather # Dockerfile pour le conteneur du script Python
-├── docker-compose.yml # Définition des services FIWARE, bases et Grafana
-├── weather-poster.py # Script Python qui récupère et poste la météo
-└── README.md # Ce fichier
 
 
----
 
-## 🚀 Prérequis
 
-- Windows 11 avec WSL 2 activé  
-- Docker Desktop (intégration WSL)  
-- Compte et clé API sur [OpenWeatherMap](https://openweathermap.org/api)  
-- (Optionnel) VS Code + extension Remote – WSL  
 
----
 
-## ⚙️ Installation & démarrage
 
-1. **Clone ce dépôt**  
-   ```bash
-   git clone https://github.com/tonpseudo/digital-twin-weather.git
-   cd digital-twin-weather
-2. Configure ta clé API
+🛠 Prerequisites
+System Requirements
 
-  Ouvre weather-poster.py
+Windows 11 with WSL 2 enabled
 
-  Remplace API_KEY = "VOTRE_CLÉ_API_OPENWEATHERMAP" par ta clé
+Docker Desktop (WSL integration)
 
-3. Lance les conteneurs
-   docker-compose build
-   docker-compose up -d
+API Keys
 
-4. Vérifie les services
+OpenWeatherMap API Key (Free tier sufficient)
 
-  Orion Context Broker : http://localhost:1026/version
-  
-  Mongo Express : http://localhost:8081
-  
-  CrateDB : http://localhost:4200
-  
-  Grafana : http://localhost:3000
-📡 Workflow
-Le script weather-poster.py :
+Recommended Tools
 
-Interroge l’API OpenWeatherMap toutes les 5 minutes.
+VS Code with Remote - WSL extension
 
-Génère une entité NGSI-v2 WeatherObserved.
+Postman for API testing
 
-Poste dans Orion via l’endpoint /v2/entities?options=upsert.
+🚀 Quick Start
+1. Clone Repository
+bash
+git clone https://github.com/tonpseudo/digital-twin-weather.git
+cd digital-twin-weather
+2. Configure API Key
+python
+# weather-poster.py (Line 8)
+API_KEY = "your_api_key_here"  # Get from OpenWeatherMap
+3. Build & Launch Services
+bash
+docker-compose build  # Build custom Python container
+docker-compose up -d  # Start all services in background
+4. Verify Deployment
+bash
+docker-compose ps  # Check container statuses
+🌐 Services & Endpoints
+Service	URL	Purpose	Credentials
+Orion Context Broker	http://localhost:1026	NGSI entity management	-
+MongoDB	mongodb://localhost:27017	Orion storage	-
+Mongo Express	http://localhost:8081	MongoDB Web UI	admin:pass
+QuantumLeap	http://localhost:8668	Historical data bridge	-
+CrateDB	http://localhost:4200	Time series storage	-
+Grafana	http://localhost:3000	Visualization	admin:admin
+🔄 Data Workflow
+Data Collection
+Python script executes every 5 minutes:
 
-Subscription Orion → QuantumLeap
+python
+while True:
+    get_weather_data()
+    time.sleep(300)  # 300 seconds = 5 minutes
+Entity Creation
+Sample NGSI-v2 entity structure:
 
-Orion notifie QuantumLeap sur les entités WeatherObserved.
+json
+{
+  "id": "WeatherObserved-Paris",
+  "type": "WeatherObserved",
+  "temperature": {"value": 22.3, "type": "Float"},
+  "humidity": {"value": 68, "type": "Integer"},
+  "pressure": {"value": 1016, "type": "Integer"}
+}
+Data Persistence
+QuantumLeap automatically creates CrateDB table:
 
-QuantumLeap insère ces observations dans CrateDB (index
-weatherobserved).
+sql
+CREATE TABLE "mtweatherobserved" (
+  "entity_id" TEXT,
+  "temperature" FLOAT,
+  "humidity" INTEGER,
+  "pressure" INTEGER,
+  "time_index" TIMESTAMP
+);
+🛠 Customization Guide
+Change Monitored City
+Option 1: Edit script directly
 
-Dashboard Grafana
+python
+# weather-poster.py (Line 9)
+CITY_NAME = "London"
+Option 2: Use environment variable (recommended)
 
-Data source CrateDB connectée.
+yaml
+# docker-compose.yml
+services:
+  weather-poster:
+    environment:
+      - CITY_NAME=Berlin
+Modify Data Collection Interval
+python
+# Adjust sleep duration (seconds)
+time.sleep(600)  # 10-minute intervals
+Grafana Dashboard Enhancements
+Add new panels for wind speed:
 
-Panels « Temperature », « Humidity », « Pressure » en séries temporelles.
+sql
+SELECT entity_id, wind_speed, time_index 
+FROM "mtweatherobserved"
+ORDER BY time_index DESC
+Create precipitation alerts using threshold checks
 
-🎨 Personnalisation
-Modifier la ville : Change CITY_NAME dans weather-poster.py ou via variable d’environnement dans docker-compose.yml.
+🚨 Troubleshooting
+Common Issues	Solutions
+Orion not receiving data	Check Docker logs: docker-compose logs orion
+Missing data in CrateDB	Verify QuantumLeap health: curl http://localhost:8668/v2/version
+Grafana connection issues	Confirm CrateDB credentials in Data Sources config
+API key errors	Validate key at https://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}
+📜 License
+MIT Licensed - See LICENSE for full details.
 
-Intervalle : Ajuste time.sleep(300) dans le script pour modifier la fréquence.
-
-Dashboard : Duplique/édite les panels Grafana pour ajouter d’autres métriques (vent, précipitations, etc.).
-
-📜 Licence
-Ce projet est distribué sous la licence MIT. Voir LICENSE pour plus de détails.
+Maintainer: Your Name | Version: 1.1.0
+FIWARE Badge
