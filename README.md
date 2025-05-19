@@ -3,6 +3,24 @@
 Ce projet met en place une architecture « Digital Twin » pour collecter, stocker et visualiser les données météorologiques d’une ville en temps réel, à l’aide de FIWARE (Orion Context Broker), MongoDB, QuantumLeap, CrateDB et Grafana, le tout orchestré via Docker Compose. Un script Python interroge l’API OpenWeatherMap toutes les 5 minutes et pousse les observations dans Orion. QuantumLeap relaie ensuite ces données vers CrateDB, et Grafana affiche des dashboards dynamiques.
 
 ---
+flowchart LR
+    subgraph Data_Sources
+        A[OpenWeatherMap API]
+    end
+
+    subgraph Docker_Env
+        direction TB
+        B[weather-poster<br>(Python)] -->|POST NGSI-v2| C[Orion<br>Context Broker]
+        C -->|Subscription| D[QuantumLeap]
+        D -->|Time-series Ingest| E[CrateDB]
+        F[Grafana] -->|Query SQL| E
+    end
+
+    subgraph User
+        U(Utilisateur) -->|Web UI| F
+    end
+
+    A -->|HTTP Request| B
 
 ## 🗂 Structure du dépôt
 
