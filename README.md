@@ -1,157 +1,122 @@
-# Weather-City Digital Twin
+Digital Twin Météo
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/yourusername/weather-city-twin/ci.yml)](https://github.com/yourusername/weather-city-twin/actions)
-[![License](https://img.shields.io/github/license/yourusername/weather-city-twin)](LICENSE)
+Ce projet implémente un Digital Twin pour un système météorologique, inspiré de l'architecture « Airplane Cabin Digital Twin ». Il permet de simuler, collecter, stocker et visualiser en temps réel des données météo (température, humidité, pression, etc.).
 
-## 📖 Project Overview
+1. Architecture Générale
+   flowchart LR
+  subgraph Data Pipeline
+    A[Simulateur de Capteurs] -->|NGSIv2 données réelles| B[Orion Context Broker]
+    B -->|Persistance| C[(MongoDB)]
+    C --> D[API d'Inspection (Express)]
+  end
 
-Weather-City Digital Twin is a real-time dashboard application that displays the current and forecasted weather data for any selected city. It polls the [OpenWeatherMap Current Weather Data API](https://openweathermap.org/api) at configurable intervals, stores results in a real-time data store, and pushes live updates to a web frontend via WebSockets.
+  subgraph Conversion
+    D -->|NGSIv2 to TS| E[QuantumLeap]
+  end
 
-### Key Features
+  subgraph Time-Series & Visualisation
+    E -->|stockage timeseries| F[(CrateDB)]
+    F -->|live visualization| G[Grafana]
+  end
 
-* **Live Weather Updates**: Current temperature, humidity, wind speed, and conditions refreshed every minute.
-* **Forecast Visualization**: 5-day forecast chart with interactive graphs.
-* **Real-Time Architecture**: Backend powered by Django, Celery (or Django-beat), Redis (or a time-series DB), and Django Channels.
-* **Responsive Frontend**: Dynamic widgets and charts built with React/Vue (or vanilla JS) and Chart.js.
-* **Scalable Deployment**: Containerized with Docker, deployable on Kubernetes or Docker Compose.
+2. Prérequis
 
-## 🚀 Quickstart
+Docker & Docker Compose
 
-### Prerequisites
+Node.js & npm
 
-* Python 3.10+ and pip
-* Docker & Docker Compose (for containerized setup)
-* Redis server (or InfluxDB)
-* OpenWeatherMap API key
+Python 3.8+
 
-### Installation
+MongoDB (inclus via Docker)
 
-1. **Clone the repository**
+CrateDB (inclus via Docker)
 
-   ```bash
-   git clone https://github.com/yourusername/weather-city-twin.git
-   cd weather-city-twin
-   ```
+Grafana (inclus via Docker)
 
-2. **Create a virtual environment & install dependencies**
+PostgreSQL (optionnel si besoin de retentions avancées)
 
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
 
-3. **Environment Variables**
-   Create a `.env` file in the project root:
+3. Installation
+   1. Cloner le dépôt:
+      git clone https://github.com/votre-repo/digital-twin-meteo.git
+      cd digital-twin-meteo
+   2. Configurer les variables d'environnement
 
-   ```dotenv
-   DEBUG=True
-   SECRET_KEY=<your-secret-key>
-   OPENWEATHER_API_KEY=<your-openweathermap-api-key>
-   REDIS_URL=redis://localhost:6379/0
-   ```
+      Copier le fichier .env.example en .env
 
-4. **Initialize the Database & Redis**
+      Adapter les paramètres :
+      ORION_HOST=orion
+   ORION_PORT=1026
+   MONGO_HOST=mongo
+   MONGO_PORT=27017
+   CRATEDB_HOST=cratedb
+   CRATEDB_PORT=4200
+   QUANTUMLEAP_HOST=quantumleap
+   QUANTUMLEAP_PORT=8668
+   GRAFANA_PORT=3000
+3. Démarrer les services avec Docker Compose:
+   docker-compose up -d
+4. Modules principaux
 
-   ```bash
-   python manage.py migrate
-   # Ensure Redis is running on REDIS_URL
-   ```
+Simulateur de Capteurs (Python)
 
-5. **Start Celery (or Django-beat)**
+Génère des mesures simulées (température, humidité, pression)
 
-   ```bash
-   # Using Celery
-   celery -A weather_city_twin worker -B --loglevel=info
+Envoie des entités NGSIv2 vers Orion à intervalles réguliers
 
-   # OR using django-beat
-   python manage.py runserver
-   ```
+Orion Context Broker
 
-6. **Run the Django Development Server**
+Reçoit et stocke le contexte des capteurs
 
-   ```bash
-   python manage.py runserver
-   ```
+Permet l’interrogation et la subscription aux mises à jour
 
-7. **Access the Dashboard**
-   Open your browser at `http://127.0.0.1:8000` and select a city to start viewing live weather data.
+MongoDB
 
-## 📐 Architecture
+Persistance historique des données de contexte
 
-```text
-+----------------+        +---------------+       +-------------------+
-|                |        |               |       |                   |
-| OpenWeatherMap | <----> | Celery Beat   |       | Redis / TS-DB     |
-|   API          |        | (Django-beat) |       | (Real-time store) |
-+----------------+        +---------------+       +-------------------+
-                                   |
-                                   v
-                          +-------------------+    +---------------+
-                          | Django Channels   | -> | WebSocket API |
-                          +-------------------+    +---------------+
-                                   |
-                                   v
-                           +-----------------+
-                           | Frontend (React |
-                           | /Vue /Chart.js) |
-                           +-----------------+
-```
+API d’Inspection (Node.js / Express)
 
-1. **Poller**: Celery (or Django-beat) worker fetches weather every minute.
-2. **Storage**: Raw JSON parsed into Django models and pushed into Redis (or a time-series DB).
-3. **WebSockets**: Django Channels broadcasts updates to subscribed clients.
-4. **Frontend**: Connects via WebSocket, renders live data and forecast charts.
+Point d’accès pour interroger et valider les données stockées
 
-## 🛠️ Configuration
+QuantumLeap
 
-* **POLL\_INTERVAL**: Interval in seconds for API polling (default: 60).
-* **MAX\_HISTORY**: Number of historical entries to retain in Redis.
+Convertit les entités NGSIv2 en série temporelle
 
-Set these in `.env` or your deployment environment.
+Envoie les séries vers CrateDB
 
-## 🚢 Deployment
+CrateDB
 
-### Docker Compose
+Stockage des données temps réel et historique en séries temporelles
 
-```bash
-# Build and start services
-docker-compose up --build -d
+Grafana
 
-# Stop and remove services
-docker-compose down
-```
+Dashboards dynamiques pour visualiser l’évolution des mesures
 
-### Kubernetes
+5. Lancement et Tests
 
-1. Build Docker images and push to registry.
+Vérifier les logs:
 
-2. Apply Kubernetes manifests:
+docker-compose logs -f
 
-   ```bash
-   kubectl apply -f k8s/deployment.yml
-   kubectl apply -f k8s/service.yml
-   ```
+Simuler des données:
 
-3. Configure Ingress and environment secrets.
+cd simulator
+python3 simulate_meteo.py
 
-## ⚙️ Monitoring & Logging
+Accéder à Grafana:
 
-* **Metrics**: Prometheus scraping `/metrics` endpoint.
-* **Dashboards**: Grafana pre-configured panels for API latency, poll success rate, WebSocket connections.
-* **Logs**: Structured JSON logs sent to stdout, aggregable by EFK/ELK stacks.
+URL : http://localhost:3000
 
-## 🏗️ Future Enhancements
+Login par défaut : admin / admin
 
-1. Multi-city support with topic-based channels
-2. Historical playback with time-slider
-3. Threshold-based alerts (email, Slack)
-4. Geo-visualization with Leaflet/OpenLayers
-5. Mobile App or Progressive Web App (PWA)
+Importer le dashboard dash_meteo.json
 
-## 🤝 Contributing
+6. Développement et extensions
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add feature'`)
-4. Open a Pull Request
+Ajouter de nouveaux capteurs : Modifier simulate_meteo.py et le modèle NGSIv2
+
+Alertes et subscriptions : Configurer des subscriptions dans Orion
+
+Stockage longue durée : Archiver MongoDB ou CrateDB
+
+Scalabilité : Orchestrer via Kubernetes
