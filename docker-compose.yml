@@ -1,0 +1,56 @@
+services:
+  orion:
+    image: fiware/orion
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+    depends_on:
+      - mongo
+
+  quantumleap:
+    image: orchestracities/quantumleap
+    ports:
+      - "8668:8668"
+    environment:
+      - CRATE_HOST=crate
+      - ORION_URL=http://orion:1026
+    depends_on:
+      - orion
+      - crate
+
+  crate:
+    image: crate
+    ports:
+      - "4200:4200"
+      - "5432:5432"
+    command: crate -Cauth.host_based.enabled=false
+    volumes:
+      - crate_data:/data
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  mongo_data:
+  crate_data:
+  grafana_data:
